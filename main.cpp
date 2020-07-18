@@ -1,3 +1,20 @@
+/**
+ *  A* path finding algorithm written in pure C++17
+ *  Copyright (C) 2020  Jason <m.jason.liu@outlook.com>
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <iostream>
 #include <memory>
 #include <vector>
@@ -33,15 +50,15 @@ bool Node::operator==(Node other) const {
 using collection_t = vector<shared_ptr<Node>>;
 
 void
-init_neighbors(int width, int height, vector<shared_ptr<Node>>& nodes) {
+init_neighbors(int width, int height, vector<shared_ptr<Node>> &nodes) {
     if (width * height != nodes.size()) return;
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             pair<int, int> np[4] = {
                     {x - 1, y},
-                    {x, y + 1},
+                    {x,     y + 1},
                     {x + 1, y},
-                    {x, y - 1}
+                    {x,     y - 1}
             };
             vector<pair<int, int>> vnp = {};
             /* auto last = remove_if(np, np + 4, [width, height](auto v) {
@@ -87,8 +104,7 @@ vector<weak_ptr<Node>> reconstruct_path(weak_ptr<Node> current_) {
     vector<weak_ptr<Node>> result_path;
     result_path.push_back(current_);
     optional<weak_ptr<Node>> current = current_.lock()->parent;
-    while (current.has_value())
-    {
+    while (current.has_value()) {
         auto _current = current.value().lock();
         result_path.push_back(_current);
         current = _current->parent;
@@ -102,46 +118,43 @@ using HFUNC = function<int(weak_ptr<Node>, weak_ptr<Node>)>;
 
 optional<vector<weak_ptr<Node>>>
 astar(weak_ptr<Node> start, weak_ptr<Node> end, HFUNC h) {
-vector<weak_ptr<Node>> openSet;
-openSet.push_back(start);
+    vector<weak_ptr<Node>> openSet;
+    openSet.push_back(start);
 
 // Init start node
-auto s = start.lock();
-s->fscore = 0;
-s->gscore = h(start, end);
+    auto s = start.lock();
+    s->fscore = 0;
+    s->gscore = h(start, end);
 
 // Start algorithm
-while (!openSet.empty())
-{
-sort(openSet.begin(), openSet.end(), [](auto a, auto b) {
-return a.lock()->fscore < b.lock()->fscore;
-});
+    while (!openSet.empty()) {
+        sort(openSet.begin(), openSet.end(), [](auto a, auto b) {
+            return a.lock()->fscore < b.lock()->fscore;
+        });
 
-auto current = openSet.front();
-openSet.erase(openSet.begin());
+        auto current = openSet.front();
+        openSet.erase(openSet.begin());
 
-if (current.lock() == end.lock()) {
-return reconstruct_path(current);
-}
+        if (current.lock() == end.lock()) {
+            return reconstruct_path(current);
+        }
 
-
-
-for (auto neighbor : current.lock()->neighbors) {
-int tentative_gscore = current.lock()->gscore + 1;
-if (tentative_gscore < neighbor.lock()->gscore) {
-auto g = neighbor.lock();
-g->parent = current;
-g->gscore = tentative_gscore;
-g->fscore = g->gscore + h(neighbor, end);
-if (none_of(openSet.begin(), openSet.end(), [&g](auto v) {
-return v.lock() == g;
-})){
-openSet.push_back(g);
-}
-}
-}
-}
-return nullopt;
+        for (auto neighbor : current.lock()->neighbors) {
+            int tentative_gscore = current.lock()->gscore + 1;
+            if (tentative_gscore < neighbor.lock()->gscore) {
+                auto g = neighbor.lock();
+                g->parent = current;
+                g->gscore = tentative_gscore;
+                g->fscore = g->gscore + h(neighbor, end);
+                if (none_of(openSet.begin(), openSet.end(), [&g](auto v) {
+                    return v.lock() == g;
+                })) {
+                    openSet.push_back(g);
+                }
+            }
+        }
+    }
+    return nullopt;
 }
 
 
@@ -153,18 +166,6 @@ int main() {
         auto b = b_.lock();
         return sqrt(pow(a->p.x - b->p.y, 2) + pow(a->p.y - b->p.y, 2));
     });
-
-    /* HANDLE hbuff = CreateConsoleScreenBuffer(
-          GENERIC_WRITE | GENERIC_READ,
-          FILE_SHARE_READ,
-          NULL,
-          CONSOLE_TEXTMODE_BUFFER,
-          NULL
-      );
-
-      SetConsoleActiveScreenBuffer(hbuff);
-
-      WriteConsole(hbuff, )*/
 
     char ch[100] = {};
     memset(ch, 'O', 100);
@@ -186,4 +187,3 @@ int main() {
 
     return 0;
 }
-
